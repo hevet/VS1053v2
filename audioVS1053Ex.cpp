@@ -2020,7 +2020,7 @@ bool Audio::parseHttpResponseHeader() { // this is the response to a GET / reque
         }
         else{
             AUDIO_INFO("unknown content found at: %s", m_lastHost);
-            //AUDIO_ERROR("unknown content found at: %s", m_lastHost);
+            AUDIO_ERROR("unknown content found at: %s", m_lastHost);
             goto exit;
         }
         return true;
@@ -2073,7 +2073,7 @@ bool Audio::parseContentType(char* ct) {
 
     else if(ct_val == CT_NONE){
         AUDIO_INFO("ContentType %s not supported", ct);
-        //AUDIO_ERROR("ContentType %s not supported", ct);
+        AUDIO_ERROR("ContentType %s not supported", ct);
         return false; // nothing valid had been seen
     }
     else {;}
