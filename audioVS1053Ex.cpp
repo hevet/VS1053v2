@@ -5,7 +5,7 @@
  *  vs1053_ext.cpp
  *
  *  Created on: Jul 09.2017
- *  Updated on: Jul 05.2023
+ *  Updated on: Jul 20.2023
  *      Author: Wolle
  */
 #ifndef VS_PATCH_ENABLE
@@ -2020,7 +2020,7 @@ bool Audio::parseHttpResponseHeader() { // this is the response to a GET / reque
         }
         else{
             AUDIO_INFO("unknown content found at: %s", m_lastHost);
-            AUDIO_ERROR("unknown content found at: %s", m_lastHost);
+            //AUDIO_ERROR("unknown content found at: %s", m_lastHost);
             goto exit;
         }
         return true;
@@ -2073,7 +2073,7 @@ bool Audio::parseContentType(char* ct) {
 
     else if(ct_val == CT_NONE){
         AUDIO_INFO("ContentType %s not supported", ct);
-        AUDIO_ERROR("ContentType %s not supported", ct);
+        //AUDIO_ERROR("ContentType %s not supported", ct);
         return false; // nothing valid had been seen
     }
     else {;}
@@ -2370,7 +2370,7 @@ bool Audio::connecttohost(const char* host, const char* user, const char* pwd) {
 		strcpy(m_lastHost, l_host);
 		AUDIO_INFO("%s has been established in %u ms, free Heap: %u bytes",
                     m_f_ssl?"SSL":"Connection", dt, ESP.getFreeHeap());
-    m_f_running = true;
+        m_f_running = true;
 	}
 
 	m_expectedCodec = CODEC_NONE;
@@ -2389,8 +2389,8 @@ bool Audio::connecttohost(const char* host, const char* user, const char* pwd) {
 		if(endsWith(extension, "/opus")) m_expectedCodec = CODEC_OPUS;
 		if(endsWith(extension, ".asx")) m_expectedPlsFmt = FORMAT_ASX;
 		if(endsWith(extension, ".m3u")) m_expectedPlsFmt = FORMAT_M3U;
-		if(endsWith(extension, ".m3u8")) m_expectedPlsFmt = FORMAT_M3U8;
 		if(endsWith(extension, ".pls")) m_expectedPlsFmt = FORMAT_PLS;
+        if(endsWith(extension, ".m3u8")){m_expectedPlsFmt = FORMAT_M3U8; if(audio_lasthost) audio_lasthost(host);}
 
 		setDatamode(HTTP_RESPONSE_HEADER);  // Handle header
 		m_streamType = ST_WEBSTREAM;
