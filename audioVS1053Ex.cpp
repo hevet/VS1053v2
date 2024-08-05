@@ -178,9 +178,10 @@ Audio::Audio(uint8_t _cs_pin, uint8_t _dcs_pin, uint8_t _dreq_pin, uint8_t spi, 
 }
 Audio::~Audio(){
     // destructor
-    if(m_chbuf)    {free(m_chbuf);    m_chbuf    = NULL;}
-    if(m_lastHost) {free(m_lastHost); m_lastHost = NULL;}
-    if(m_ibuff)    {free(m_ibuff);    m_ibuff    = NULL;}
+    if(m_chbuf)      {free(m_chbuf);       m_chbuf       = NULL;}
+    if(m_lastHost)   {free(m_lastHost);    m_lastHost    = NULL;}
+    if(m_ibuff)      {free(m_ibuff);       m_ibuff       = NULL;}
+    if(m_lastM3U8host){free(m_lastM3U8host); m_lastM3U8host = NULL;}
 }
 //---------------------------------------------------------------------------------------------------------------------
 void Audio::initInBuff() {
@@ -658,7 +659,7 @@ void Audio::loop(){
                 httpPrint(host);
             }
             else { // host == NULL means connect to m3u8 URL
-                httpPrint(m_lastHost);
+                httpPrint(m_lastM3U8host);
                 setDatamode(HTTP_RESPONSE_HEADER); // we have a new playlist now
             }
 
@@ -1590,8 +1591,12 @@ const char* Audio::parsePlaylist_M3U8() {
                 if(!startsWith(m_playlistContent[i], "http")) {
                     // http://livees.com/prog_index.m3u8 and prog_index48347.aac -->
                     // http://livees.com/prog_index48347.aac
-                    tmp = (char*)malloc(strlen(m_lastHost) + strlen(m_playlistContent[i]));
-                    strcpy(tmp, m_lastHost);
+                    if(m_lastM3U8host != 0){
+                        tmp = strdup(m_lastM3U8host);
+                    }
+                    else{
+                        tmp = strdup(m_lastHost);
+                    }
                     int idx = lastIndexOf(tmp, "/");
                     strcpy(tmp + idx + 1, m_playlistContent[i]);
                 }
@@ -1657,7 +1662,7 @@ const char* Audio::parsePlaylist_M3U8() {
                     }
                     else{;}
 
-                    if(m_playlistURL.size() == 0) connecttohost(m_lastHost);
+                    if(m_playlistURL.size() == 0) {connecttohost(m_lastHost);}
                 }
             }
             else{
@@ -1735,12 +1740,13 @@ const char* Audio::m3u8redirection(){
         m_playlistContent[choosenLine] = NULL;
     }
     m_playlistContent[choosenLine] = strdup(tmp);
-    strcpy(m_lastHost, tmp);
+    if(m_lastM3U8host){free(m_lastM3U8host); m_lastM3U8host = NULL;}
+    m_lastM3U8host = strdup(tmp);
     if(tmp) {
         free(tmp);
         tmp = NULL;
     }
-    if(m_f_Log) log_i("redirect %s", m_playlistContent[choosenLine]);
+    AUDIO_INFO("redirect to %s", m_playlistContent[choosenLine]);
     _client->stop();
     return m_playlistContent[choosenLine];  // it's a redirection, a new m3u8 playlist
 exit:
@@ -2140,6 +2146,7 @@ bool Audio::parseHttpResponseHeader() { // this is the response to a GET / reque
         if(audio_showstation) audio_showstation("");
         if(audio_icydescription) audio_icydescription("");
         if(audio_icyurl) audio_icyurl("");
+        if(m_playlistFormat == FORMAT_M3U8) return false;
         m_lastHost[0] = '\0';
         setDatamode(AUDIO_NONE);
         stopSong();
@@ -2397,14 +2404,16 @@ bool Audio::connecttohost(const char* host, const char* user, const char* pwd) {
     // user and pwd for authentification only, can be empty
 
 	if(host == NULL) {
-		AUDIO_INFO("Hostaddress is empty");
-		return false;
+		AUDIO_INFO("cth Hostaddress is empty");
+        stopSong();
+        return false;
 	}
 
 	uint16_t lenHost = strlen(host);
 
 	if(lenHost >= 512 + 64 - 10) {
 		AUDIO_INFO("Hostaddress is too long");
+        stopSong();
 		return false;
 	}
 
@@ -2555,6 +2564,7 @@ bool Audio::httpPrint(const char* host) {
 
     if(host == NULL) {
         AUDIO_INFO("Hostaddress is empty");
+        stopSong();
         return false;
     }
 
@@ -2637,7 +2647,7 @@ bool Audio::httpPrint(const char* host) {
     if(endsWith(extension, ".flac")) m_expectedCodec = CODEC_FLAC;
     if(endsWith(extension, ".asx")) m_expectedPlsFmt = FORMAT_ASX;
     if(endsWith(extension, ".m3u")) m_expectedPlsFmt = FORMAT_M3U;
-    if(endsWith(extension, ".m3u8")) m_expectedPlsFmt = FORMAT_M3U8;
+    if(indexOf( extension, ".m3u8") >= 0) m_expectedPlsFmt = FORMAT_M3U8;
     if(endsWith(extension, ".pls")) m_expectedPlsFmt = FORMAT_PLS;
 
     setDatamode(HTTP_RESPONSE_HEADER);  // Handle header
